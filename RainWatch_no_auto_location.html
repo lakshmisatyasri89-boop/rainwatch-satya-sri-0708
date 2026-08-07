@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RainWatch - Live Rainfall Prediction</title>
+<style>
+body{font-family:Arial,sans-serif;margin:0;min-height:100vh;display:flex;justify-content:center;align-items:center;background:#eef7ff;color:#17324d}
+.card{background:#fff;width:min(90%,500px);padding:30px;border-radius:22px;box-shadow:0 10px 30px #0002;text-align:center}
+h1{color:#1769aa}button{background:#1769aa;color:#fff;border:0;padding:14px 22px;border-radius:12px;font-size:16px;font-weight:bold;cursor:pointer}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}.box{background:#f2f8fc;padding:16px;border-radius:12px}
+#result{margin-top:20px;padding:18px;border-radius:14px;background:#edf7ff}
+.note{font-size:12px;color:#667;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>🌧️ RainWatch</h1>
+<p><b>Live Rainfall Prediction System</b></p>
+<p>Click below to use your present location.</p>
+<button id="start">📍 Get My Current Weather</button>
+<div id="status"></div>
+<div id="weather" class="grid" style="display:none">
+<div class="box">🌡️ Temperature<br><b id="temp">--</b></div>
+<div class="box">💧 Humidity<br><b id="hum">--</b></div>
+<div class="box">🌧️ Rain probability<br><b id="prob">--</b></div>
+<div class="box">💨 Wind<br><b id="wind">--</b></div>
+</div>
+<div id="result" style="display:none"><h2 id="answer">--</h2><p>Based on current weather information and near-term precipitation probability.</p></div>
+<p class="note">A practical weather demonstration for the AIML mini project. Forecasts are indications, not guarantees.</p>
+</div>
+<script>
+document.getElementById("start").onclick=async function(){
+ const s=document.getElementById("status");
+ s.textContent="Requesting location...";
+ if(!navigator.geolocation){s.textContent="Location is not supported by this browser.";return;}
+ navigator.geolocation.getCurrentPosition(async p=>{
+  try{
+   s.textContent="Getting live weather...";
+   const lat=p.coords.latitude,lon=p.coords.longitude;
+   const r=await fetch("https://api.open-meteo.com/v1/forecast?latitude="+lat+"&longitude="+lon+"&current=temperature_2m,relative_humidity_2m,wind_speed_10m&hourly=precipitation_probability&forecast_days=1&timezone=auto");
+   const d=await r.json(),now=new Date();let i=0,b=Infinity;
+   d.hourly.time.forEach((t,x)=>{let z=Math.abs(new Date(t)-now);if(z<b){b=z;i=x;}});
+   const prob=d.hourly.precipitation_probability[i]??0;
+   document.getElementById("temp").textContent=d.current.temperature_2m+" °C";
+   document.getElementById("hum").textContent=d.current.relative_humidity_2m+" %";
+   document.getElementById("wind").textContent=d.current.wind_speed_10m+" km/h";
+   document.getElementById("prob").textContent=prob+" %";
+   document.getElementById("weather").style.display="grid";
+   document.getElementById("result").style.display="block";
+   document.getElementById("answer").textContent=prob>=50?"🌧️ RAIN IS LIKELY":"☀️ RAIN IS UNLIKELY";
+   s.textContent="✅ Weather loaded successfully.";
+  }catch(e){s.textContent="Unable to load weather. Please check your internet connection.";}
+ },()=>{s.textContent="Location permission was denied. This page needs location access when hosted online."});
+};
+</script>
+</body>
+</html>
